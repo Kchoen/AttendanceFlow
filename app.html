@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簽到報表匯出系統</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            background: #f8f9fa;
+            border: none;
+            font-size: 16px;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .status-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.3s ease;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #28a745;
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.info {
+            background: #17a2b8;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .scanner-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .scanner-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .edit-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .edit-buttons .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .download-status {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #1976d2;
+            font-weight: 500;
+        }
+
+        /* 暫存檔功能樣式 */
+        .temp-save-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .temp-save-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .temp-save-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .temp-file-info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin-top: 15px;
+        }
+
+        .progress-indicator {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 8px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+            
+            .edit-buttons {
+                flex-direction: column;
+            }
+            
+            .edit-buttons .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .temp-save-buttons {
+                flex-direction: column;
+            }
+
+            .temp-save-buttons .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 簽到報表匯出系統</h1>
+            <p>課程設定 → 姓名匯入 → 身份證掃描 → 完整報表輸出 | 💾 支援暫存檔功能</p>
+        </div>
+
+        <!-- 編輯掃描記錄彈出視窗 -->
+        <div id="editScanModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>✏️ 編輯掃描記錄</h2>
+                    <span class="close" onclick="closeEditScanModal()">&times;</span>
+                </div>
+                
+                <form id="editScanForm">
+                    <div class="form-group">
+                        <label class="form-label">身份證字號 *</label>
+                        <input type="text" id="editIdCard" class="form-input" required maxlength="10" 
+                               placeholder="請輸入正確的身份證字號">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">姓名 *</label>
+                        <input type="text" id="editName" class="form-input" required 
+                               placeholder="請輸入正確的姓名">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">掃描時間</label>
+                        <input type="datetime-local" id="editScanTime" class="form-input">
+                        <small style="color: #6c757d; margin-top: 5px; display: block;">
+                            💡 如果不修改時間，請保持原設定
+                        </small>
+                    </div>
+                    
+                    <div style="text-align: right; margin-top: 30px;">
+                        <button type="button" class="btn btn-danger" onclick="closeEditScanModal()">
+                            ❌ 取消
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            ✅ 儲存修改
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 分頁標籤 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('setup')">📋 課程設定</button>
+            <button class="tab" onclick="switchTab('import')">📥 姓名匯入</button>
+            <button class="tab" onclick="switchTab('scan')">📱 身份證掃描</button>
+            <button class="tab" onclick="switchTab('report')">📊 完整報表</button>
+            <button class="tab" onclick="switchTab('temp')">💾 暫存檔管理</button>
+        </div>
+
+        <!-- 課程設定頁面 -->
+        <div id="setup" class="tab-content active">
+            <h2>📋 課程資料設定</h2>
+            <div class="status-panel">
+                <div class="status-info">
+                    <div class="status-item">
+                        <div class="status-indicator"></div>
+                        <span><strong>課程設定狀態:</strong> <span id="courseStatus">未設定</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📝 當前課程資料</h3>
+                <div id="courseInfo">
+                    <p class="empty-state">
+                        <span class="empty-icon">📚</span><br>
+                        尚未設定課程資料<br>
+                        請點擊下方按鈕開始設定
+                    </p>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="openCourseModal()">
+                🆕 設定課程資料
+            </button>
+            <button class="btn btn-info" onclick="editCourseData()" id="editCourseBtn" style="display: none;">
+                ✏️ 編輯課程資料
+            </button>
+        </div>
+
+        <!-- 姓名匯入頁面 -->
+        <div id="import" class="tab-content">
+            <h2>📥 身份證與姓名對應表匯入</h2>
+            <div class="status-panel">
+                <div class="status-info">
+                    <div class="status-item">
+                        <span><strong>已匯入人數:</strong> <span id="importedCount">0</span> 人</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📤 匯入Excel檔案</h3>
+                <p>請選擇包含身份證字號和姓名的Excel檔案</p>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-success" onclick="triggerFileUpload()">
+                        📂 選擇檔案匯入
+                    </button>
+                    <input type="file" id="nameFileInput" accept=".xlsx,.xls,.csv" onchange="importNameFile()" style="display: none;">
+                </div>
+                <small style="color: #6c757d; margin-top: 10px; display: block;">
+                    💡 支援格式：Excel (.xlsx, .xls) 或 CSV (.csv)<br>
+                    📋 檔案應包含「身份證字號」和「姓名」兩個欄位
+                </small>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>身份證字號</th>
+                            <th>姓名</th>
+                            <th>匯入時間</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nameTableBody">
+                        <tr>
+                            <td colspan="3" class="empty-state">
+                                <div class="empty-icon">👥</div>
+                                <h3>尚未匯入姓名資料</h3>
+                                <p>請選擇Excel檔案匯入身份證與姓名對應表</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 身份證掃描頁面 -->
+        <div id="scan" class="tab-content">
+            <h2>📱 身份證掃描</h2>
+            <div class="status-panel">
+                <div class="status-info">
+                    <div class="status-item">
+                        <div class="status-indicator"></div>
+                        <span><strong>掃描器狀態:</strong> 就緒</span>
+                    </div>
+                    <div class="status-item">
+                        <span><strong>已掃描人數:</strong> <span id="scannedCount">0</span> 人</span>
+                    </div>
+                    <div class="status-item">
+                        <span><strong>最後掃描:</strong> <span id="lastScan">尚未掃描</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scanner-section">
+                <h3>🔍 掃描身份證</h3>
+                <div class="scanner-input">
+                    <input type="text" id="idCardInput" class="form-input" placeholder="請掃描身份證或手動輸入..." autofocus>
+                    <button class="btn btn-primary" onclick="addScannedId()">新增</button>
+                </div>
+                <small style="color: #6c757d; margin-top: 10px; display: block;">
+                    💡 提示: 連接掃描器後，掃描的身份證會自動出現在輸入框中<br>
+                    ⚠️ 重要: 請確保輸入法為<strong>英文模式</strong>，避免字符被轉換<br>
+                    ✏️ 編輯: 如果掃描的身份證沒有對應姓名，可以點擊「編輯」按鈕手動修改
+                </small>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>序號</th>
+                            <th>身份證字號</th>
+                            <th>姓名</th>
+                            <th>掃描時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scanTableBody">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <div class="empty-icon">📱</div>
+                                <h3>尚無掃描數據</h3>
+                                <p>請使用條碼掃描器掃描身份證，或手動輸入</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-danger" onclick="clearScanData()">
+                    🗑️ 清除掃描數據
+                </button>
+            </div>
+        </div>
+
+        <!-- 完整報表頁面 -->
+        <div id="report" class="tab-content">
+            <h2>📊 完整報表</h2>
+            <div class="status-panel">
+                <div class="status-info">
+                    <div class="status-item">
+                        <span><strong>報表記錄數:</strong> <span id="reportCount">0</span> 筆</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-success" onclick="exportFullReport()">
+                    📥 匯出完整報表
+                </button>
+                <button class="btn btn-info" onclick="exportAsCSV()">
+                    📄 匯出為CSV
+                </button>
+                <label style="margin-left: 20px; display: inline-flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="includeScanTime" checked>
+                    <span>包含掃描時間欄位</span>
+                </label>
+            </div>
+            
+            <div id="downloadStatus" style="display: none;" class="download-status">
+                <div id="downloadMessage"></div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>身份證字號</th>
+                            <th>課程名稱</th>
+                            <th>開課起始日期</th>
+                            <th>開課起始時間</th>
+                            <th>開課結束日期</th>
+                            <th>開課結束時間</th>
+                            <th>姓名</th>
+                            <th>學位學分</th>
+                            <th>課程類別代碼</th>
+                            <th>上課縣市</th>
+                            <th>掃描時間</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <tr>
+                            <td colspan="11" class="empty-state">
+                                <div class="empty-icon">📋</div>
+                                <h3>尚無報表數據</h3>
+                                <p>請先完成課程設定、姓名匯入和身份證掃描</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 暫存檔管理頁面 -->
+        <div id="temp" class="tab-content">
+            
+            <div class="temp-save-section">
+                <h3>💾 暫存檔功能</h3>
+                <p>您可以隨時保存當前的工作狀態，包括課程設定、姓名資料和掃描記錄。</p>
+                
+                <div class="temp-save-buttons">
+                    <button class="btn btn-warning" onclick="saveTempFile()">
+                        💾 儲存暫存檔
+                    </button>
+                    <button class="btn btn-info" onclick="triggerTempFileUpload()">
+                        📂 載入暫存檔
+                    </button>
+                    <input type="file" id="tempFileInput" accept=".json" onchange="loadTempFile()" style="display: none;">
+                </div>
+
+                <div class="temp-file-info" id="tempFileInfo" style="display: none;">
+                    <h4>📄 暫存檔資訊</h4>
+                    <div id="tempFileDetails"></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📊 當前狀態概覽</h3>
+                <div id="currentStatusOverview">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                            <strong>課程設定:</strong> <span id="statusCourse">未設定</span>
+                        </div>
+                        <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
+                            <strong>匯入姓名:</strong> <span id="statusNames">0 人</span>
+                        </div>
+                        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px;">
+                            <strong>掃描記錄:</strong> <span id="statusScans">0 筆</span>
+                        </div>
+                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+                            <strong>完成度:</strong> <span id="statusProgress">0%</span>
+                            <div class="progress-indicator">
+                                <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📋 暫存檔使用說明</h3>
+                <ul style="line-height: 1.8; color: #666; margin-left: 20px;">
+                    <li><strong>儲存暫存檔:</strong> 將當前所有資料（課程設定、姓名對應表、掃描記錄）保存為 JSON 檔案</li>
+                    <li><strong>載入暫存檔:</strong> 從之前儲存的 JSON 檔案中恢復所有資料，回到上次的工作狀態</li>
+                    <li><strong>自動命名:</strong> 暫存檔會自動以課程名稱和時間命名，方便識別</li>
+                    <li><strong>數據完整性:</strong> 暫存檔包含所有必要資訊，確保載入後功能完全正常</li>
+                    <li><strong>快捷鍵:</strong> 使用 Ctrl+Shift+S 快速儲存暫存檔</li>
+                </ul>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-danger" onclick="clearAllData()">
+                    🗑️ 清除所有資料
+                </button>
+                <small style="color: #dc3545; margin-left: 10px;">⚠️ 此操作會清除所有資料，建議先儲存暫存檔</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 課程設定彈出視窗 -->
+    <div id="courseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 課程資料設定</h2>
+                <span class="close" onclick="closeCourseModal()">&times;</span>
+            </div>
+            
+            <form id="courseForm">
+                <div class="form-group">
+                    <label class="form-label">課程名稱 *</label>
+                    <input type="text" id="courseName" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">開課起始日期 *</label>
+                    <input type="date" id="startDate" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">開課起始時間 *</label>
+                    <input type="time" id="startTime" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">開課結束日期 *</label>
+                    <input type="date" id="endDate" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">開課結束時間 *</label>
+                    <input type="time" id="endTime" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">學位學分</label>
+                    <input type="number" id="credits" class="form-input" min="0" step="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">課程類別代碼</label>
+                    <input type="text" id="courseCode" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">上課縣市</label>
+                    <input type="text" id="city" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">期別</label>
+                    <input type="text" id="period" class="form-input" >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">訓練總數</label>
+                    <input type="number" id="trainingTotal" class="form-input" min="1" step="1" >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">訓練總數單位</label>
+                    <input type="text" id="trainingUnit" class="form-input" >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">學習性質</label>
+                    <input type="text" id="learningType" class="form-input" >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">數位時數</label>
+                    <input type="number" id="digitalHours" class="form-input" min="0" step="0.1" >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">實體時數</label>
+                    <input type="number" id="physicalHours" class="form-input" min="0" step="0.1" >
+                </div>
+                
+                <div style="text-align: right; margin-top: 30px;">
+                    <button type="button" class="btn btn-danger" onclick="closeCourseModal()">
+                        ❌ 取消
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        ✅ 儲存課程資料
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // 全域變數
+        let courseData = null;
+        let nameMapping = new Map(); // 身份證 -> 姓名的對應表
+        let scannedIds = [];
+        let sequenceNumber = 1;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initScanner();
+            loadSavedData();
+            updateStatusOverview();
+        });
+
+        // 分頁切換
+        function switchTab(tabName) {
+            // 隱藏所有分頁內容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有分頁的active狀態
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 顯示選中的分頁
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // 更新相關數據顯示
+            updateAllDisplays();
+            if (tabName === 'temp') {
+                updateStatusOverview();
+            }
+        }
+
+        // 初始化掃描器
+        function initScanner() {
+            const input = document.getElementById('idCardInput');
+           
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addScannedId();
+                }
+            });
+        }
+
+        // 課程設定相關功能
+        function openCourseModal() {
+            document.getElementById('courseModal').classList.add('show');
+            
+            // 如果已有課程資料，填入表單
+            if (courseData) {
+                document.getElementById('courseName').value = courseData.courseName || '';
+                document.getElementById('startDate').value = courseData.startDate || '';
+                document.getElementById('startTime').value = courseData.startTime || '';
+                document.getElementById('endDate').value = courseData.endDate || '';
+                document.getElementById('endTime').value = courseData.endTime || '';
+                document.getElementById('credits').value = courseData.credits || '';
+                document.getElementById('courseCode').value = courseData.courseCode || '';
+                document.getElementById('city').value = courseData.city || '';
+                document.getElementById('period').value = courseData.period || '';
+                document.getElementById('trainingTotal').value = courseData.trainingTotal || '';
+                document.getElementById('trainingUnit').value = courseData.trainingUnit || '';
+                document.getElementById('learningType').value = courseData.learningType || '';
+                document.getElementById('digitalHours').value = courseData.digitalHours || '';
+                document.getElementById('physicalHours').value = courseData.physicalHours || '';
+            }
+        }
+
+        function closeCourseModal() {
+            document.getElementById('courseModal').classList.remove('show');
+        }
+
+        function editCourseData() {
+            openCourseModal();
+        }
+
+        // 觸發檔案上傳
+        function triggerFileUpload() {
+            document.getElementById('nameFileInput').click();
+        }
+
+        // 課程表單提交
+        document.getElementById('courseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            courseData = {
+                courseName: document.getElementById('courseName').value,
+                startDate: document.getElementById('startDate').value,
+                startTime: document.getElementById('startTime').value,
+                endDate: document.getElementById('endDate').value,
+                endTime: document.getElementById('endTime').value,
+                credits: document.getElementById('credits').value,
+                courseCode: document.getElementById('courseCode').value,
+                city: document.getElementById('city').value,
+                period: document.getElementById('period').value,
+                trainingTotal: document.getElementById('trainingTotal').value,
+                trainingUnit: document.getElementById('trainingUnit').value,
+                learningType: document.getElementById('learningType').value,
+                digitalHours: document.getElementById('digitalHours').value,
+                physicalHours: document.getElementById('physicalHours').value,
+                createdAt: new Date().toLocaleString('zh-TW')
+            };
+            
+            updateCourseDisplay();
+            closeCourseModal();
+            showNotification('課程資料已成功儲存！', 'success');
+            saveDataToStorage();
+            updateStatusOverview();
+        });
+
+        // 更新課程顯示
+        function updateCourseDisplay() {
+            const courseInfo = document.getElementById('courseInfo');
+            const courseStatus = document.getElementById('courseStatus');
+            const editBtn = document.getElementById('editCourseBtn');
+            
+            if (courseData) {
+                courseStatus.textContent = '已設定';
+                editBtn.style.display = 'inline-flex';
+                
+                courseInfo.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <div><strong>課程名稱:</strong> ${courseData.courseName}</div>
+                        <div><strong>開始日期:</strong> ${courseData.startDate}</div>
+                        <div><strong>開始時間:</strong> ${courseData.startTime}</div>
+                        <div><strong>結束日期:</strong> ${courseData.endDate}</div>
+                        <div><strong>結束時間:</strong> ${courseData.endTime}</div>
+                        <div><strong>學位學分:</strong> ${courseData.credits || '未設定'}</div>
+                        <div><strong>課程代碼:</strong> ${courseData.courseCode || '未設定'}</div>
+                        <div><strong>上課縣市:</strong> ${courseData.city || '未設定'}</div>
+                        <div><strong>期別:</strong> ${courseData.period || '未設定'}</div>
+                        <div><strong>訓練總數:</strong> ${courseData.trainingTotal || '未設定'} </div>
+                        <div><strong>訓練總數單位:</strong> ${courseData.trainingUnit || '未設定'}</div>
+                        <div><strong>學習性質:</strong> ${courseData.learningType || '未設定'}</div>
+                        <div><strong>數位時數:</strong> ${courseData.digitalHours || '0'} 小時</div>
+                        <div><strong>實體時數:</strong> ${courseData.physicalHours || '0'} 小時</div>
+                    </div>
+                `;
+            } else {
+                courseStatus.textContent = '未設定';
+                editBtn.style.display = 'none';
+                courseInfo.innerHTML = `
+                    <p class="empty-state">
+                        <span class="empty-icon">📚</span><br>
+                        尚未設定課程資料<br>
+                        請點擊下方按鈕開始設定
+                    </p>
+                `;
+            }
+        }
+
+        // 姓名檔案匯入
+        function importNameFile() {
+            const fileInput = document.getElementById('nameFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('請選擇檔案', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let data;
+                    const fileName = file.name.toLowerCase();
+                    
+                    if (fileName.endsWith('.csv')) {
+                        // 處理CSV檔案
+                        const csvText = e.target.result;
+                        data = parseCSV(csvText);
+                    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                        // 處理Excel檔案
+                        const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    }
+                    
+                    processNameData(data);
+                } catch (error) {
+                    console.error('檔案解析錯誤:', error);
+                    showNotification('檔案格式錯誤，請檢查檔案內容', 'error');
+                }
+            };
+            
+            if (file.name.toLowerCase().endsWith('.csv')) {
+                reader.readAsText(file, 'UTF-8');
+            } else {
+                reader.readAsBinaryString(file);
+            }
+        }
+
+        // 解析CSV
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const result = [];
+            
+            for (let line of lines) {
+                if (line.trim()) {
+                    const values = line.split(',').map(value => value.trim().replace(/"/g, ''));
+                    result.push(values);
+                }
+            }
+            
+            return result;
+        }
+
+        // 處理姓名數據
+        function processNameData(data) {
+            if (!data || data.length < 2) {
+                showNotification('檔案內容不足，請確認檔案格式', 'error');
+                return;
+            }
+
+            // 清空現有的姓名對應表
+            nameMapping.clear();
+            
+            // 尋找身份證字號和姓名欄位
+            const headers = data[0];
+            let idIndex = -1;
+            let nameIndex = -1;
+            
+            // 尋找可能的欄位名稱
+            for (let i = 0; i < headers.length; i++) {
+                const header = headers[i].toString().toLowerCase();
+                if (header.includes('身份證') || header.includes('身分證') || header.includes('id') || 
+                    header.includes('證號') || header.includes('IDCard')) {
+                    idIndex = i;
+                }
+                if (header.includes('姓名') || header.includes('name') || header.includes('名字')) {
+                    nameIndex = i;
+                }
+            }
+            
+            // 如果找不到欄位，假設前兩欄是身份證和姓名
+            if (idIndex === -1) idIndex = 0;
+            if (nameIndex === -1) nameIndex = 1;
+            
+            let importCount = 0;
+            
+            // 處理數據行
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (row.length > Math.max(idIndex, nameIndex)) {
+                    const id = row[idIndex]?.toString().trim();
+                    const name = row[nameIndex]?.toString().trim();
+                    
+                    if (id && name && id.length >= 8) { // 基本的身份證格式檢查
+                        nameMapping.set(id, {
+                            name: name,
+                            importTime: new Date().toLocaleString('zh-TW')
+                        });
+                        importCount++;
+                    }
+                }
+            }
+            
+            if (importCount > 0) {
+                updateNameTable();
+                showNotification(`成功匯入 ${importCount} 筆姓名資料`, 'success');
+                saveDataToStorage();
+                updateStatusOverview();
+            } else {
+                showNotification('未找到有效的身份證和姓名資料', 'error');
+            }
+            
+            // 清空檔案輸入
+            document.getElementById('nameFileInput').value = '';
+        }
+
+        // 更新姓名表格
+        function updateNameTable() {
+            const tbody = document.getElementById('nameTableBody');
+            const importedCount = document.getElementById('importedCount');
+            
+            importedCount.textContent = nameMapping.size;
+            
+            if (nameMapping.size === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="empty-state">
+                            <div class="empty-icon">👥</div>
+                            <h3>尚未匯入姓名資料</h3>
+                            <p>請選擇Excel檔案匯入身份證與姓名對應表</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = Array.from(nameMapping.entries()).map(([id, data]) => `
+                <tr>
+                    <td><code>${id}</code></td>
+                    <td><strong>${data.name}</strong></td>
+                    <td>${data.importTime}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 添加掃描的身份證
+        function addScannedId(idValue) {
+            const input = document.getElementById('idCardInput');
+            const id = idValue || input.value.trim();
+            
+            if (!id) {
+                showNotification('請輸入身份證字號', 'error');
+                return;
+            }
+            
+            // 基本身份證格式檢查
+            if (id.length != 10) {
+                showNotification('身份證字號格式不正確', 'error');
+                input.value = '';
+                return;
+            }
+            
+            // 檢查是否已掃描過
+            if (scannedIds.some(item => item.id === id)) {
+                showNotification('此身份證已掃描過', 'error');
+                input.value = '';
+                return;
+            }
+            
+            const currentTime = new Date().toLocaleString('zh-TW');
+            const nameData = nameMapping.get(id);
+            
+            const newEntry = {
+                sequence: sequenceNumber++,
+                id: id,
+                name: nameData ? nameData.name : '姓名未匯入',
+                scanTime: currentTime,
+                timestamp: Date.now()
+            };
+            
+            scannedIds.push(newEntry);
+            updateScanTable();
+            updateReportTable();
+            showNotification(`已新增: ${newEntry.name} (${id})`, 'success');
+            saveDataToStorage();
+            updateStatusOverview();
+            
+            if (!idValue) {
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // 更新掃描表格
+        function updateScanTable() {
+            const tbody = document.getElementById('scanTableBody');
+            const scannedCount = document.getElementById('scannedCount');
+            const lastScan = document.getElementById('lastScan');
+            
+            scannedCount.textContent = scannedIds.length;
+            
+            if (scannedIds.length > 0) {
+                const lastItem = scannedIds[scannedIds.length - 1];
+                lastScan.textContent = lastItem.scanTime;
+            }
+            
+            if (scannedIds.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-icon">📱</div>
+                            <h3>尚無掃描數據</h3>
+                            <p>請使用條碼掃描器掃描身份證，或手動輸入</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = scannedIds.map(item => `
+                <tr>
+                    <td><strong>#${item.sequence}</strong></td>
+                    <td><code>${item.id}</code></td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.scanTime}</td>
+                    <td class="edit-buttons">
+                        <button class="btn btn-info" onclick="editScanItem(${item.timestamp})">
+                            ✏️ 編輯
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteScanItem(${item.timestamp})">
+                            🗑️ 刪除
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 編輯掃描項目
+        let editingItemTimestamp = null;
+
+        function editScanItem(timestamp) {
+            const item = scannedIds.find(item => item.timestamp === timestamp);
+            if (!item) {
+                showNotification('找不到要編輯的記錄', 'error');
+                return;
+            }
+            
+            editingItemTimestamp = timestamp;
+            
+            // 填入現有資料到編輯表單
+            document.getElementById('editIdCard').value = item.id;
+            document.getElementById('editName').value = item.name;
+            
+            // 將時間格式轉換為 datetime-local 格式
+            try {
+                // 解析台灣時間格式 (例如: 2024/6/5 下午3:30:45)
+                const timeString = item.scanTime;
+                let dateObj;
+                
+                // 嘗試不同的時間格式解析
+                if (timeString.includes('/')) {
+                    // 台灣格式: 2024/6/5 下午3:30:45
+                    const parts = timeString.split(' ');
+                    const datePart = parts[0]; // 2024/6/5
+                    const timePart = parts.length > 1 ? parts.slice(1).join(' ') : ''; // 下午3:30:45
+                    
+                    // 處理日期部分
+                    const dateComponents = datePart.split('/');
+                    if (dateComponents.length === 3) {
+                        let year = parseInt(dateComponents[0]);
+                        let month = parseInt(dateComponents[1]) - 1; // JavaScript 月份從0開始
+                        let day = parseInt(dateComponents[2]);
+                        
+                        let hour = 0, minute = 0, second = 0;
+                        
+                        // 處理時間部分
+                        if (timePart) {
+                            const timeRegex = /(\d{1,2}):(\d{1,2}):(\d{1,2})/;
+                            const timeMatch = timePart.match(timeRegex);
+                            if (timeMatch) {
+                                hour = parseInt(timeMatch[1]);
+                                minute = parseInt(timeMatch[2]);
+                                second = parseInt(timeMatch[3]);
+                                
+                                // 處理上午/下午
+                                if (timePart.includes('下午') && hour !== 12) {
+                                    hour += 12;
+                                } else if (timePart.includes('上午') && hour === 12) {
+                                    hour = 0;
+                                }
+                            }
+                        }
+                        
+                        dateObj = new Date(year, month, day, hour, minute, second);
+                    }
+                } else {
+                    // 嘗試直接解析
+                    dateObj = new Date(timeString);
+                }
+                
+                // 如果解析成功，轉換為 datetime-local 格式
+                if (dateObj && !isNaN(dateObj.getTime())) {
+                    // 調整為本地時間
+                    const offset = dateObj.getTimezoneOffset() * 60000;
+                    const localISOTime = new Date(dateObj.getTime() - offset).toISOString();
+                    const datetimeLocal = localISOTime.slice(0, 16); // 移除秒數和時區部分
+                    document.getElementById('editScanTime').value = datetimeLocal;
+                } else {
+                    // 如果解析失敗，使用當前時間
+                    const now = new Date();
+                    const offset = now.getTimezoneOffset() * 60000;
+                    const localISOTime = new Date(now.getTime() - offset).toISOString();
+                    document.getElementById('editScanTime').value = localISOTime.slice(0, 16);
+                }
+            } catch (error) {
+                console.error('時間解析錯誤:', error);
+                // 使用當前時間作為預設值
+                const now = new Date();
+                const offset = now.getTimezoneOffset() * 60000;
+                const localISOTime = new Date(now.getTime() - offset).toISOString();
+                document.getElementById('editScanTime').value = localISOTime.slice(0, 16);
+            }
+            
+            // 顯示編輯彈出視窗
+            document.getElementById('editScanModal').classList.add('show');
+        }
+
+        function closeEditScanModal() {
+            document.getElementById('editScanModal').classList.remove('show');
+            editingItemTimestamp = null;
+        }
+
+        // 編輯表單提交處理
+        document.getElementById('editScanForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!editingItemTimestamp) {
+                showNotification('沒有選中要編輯的記錄', 'error');
+                return;
+            }
+            
+            const newId = document.getElementById('editIdCard').value.trim();
+            const newName = document.getElementById('editName').value.trim();
+            const newScanTime = document.getElementById('editScanTime').value;
+            
+            // 驗證必填欄位
+            if (!newId || !newName) {
+                showNotification('身份證字號和姓名為必填欄位', 'error');
+                return;
+            }
+            
+            // 驗證身份證格式
+            if (newId.length < 8 || newId.length > 10) {
+                showNotification('身份證字號格式不正確', 'error');
+                return;
+            }
+            
+            // 檢查是否與其他記錄的身份證重複
+            const existingItem = scannedIds.find(item => 
+                item.id === newId && item.timestamp !== editingItemTimestamp
+            );
+            
+            if (existingItem) {
+                showNotification('此身份證字號已存在其他記錄中', 'error');
+                return;
+            }
+            
+            // 找到要編輯的記錄並更新
+            const itemIndex = scannedIds.findIndex(item => item.timestamp === editingItemTimestamp);
+            if (itemIndex === -1) {
+                showNotification('找不到要編輯的記錄', 'error');
+                return;
+            }
+            
+            // 更新記錄資料
+            scannedIds[itemIndex].id = newId;
+            scannedIds[itemIndex].name = newName;
+            
+            // 更新時間（如果有提供新時間）
+            if (newScanTime) {
+                try {
+                    const newDate = new Date(newScanTime);
+                    if (!isNaN(newDate.getTime())) {
+                        scannedIds[itemIndex].scanTime = newDate.toLocaleString('zh-TW');
+                    }
+                } catch (error) {
+                    console.error('時間轉換錯誤:', error);
+                    // 如果時間轉換失敗，保持原時間不變
+                }
+            }
+            
+            // 更新畫面顯示
+            updateScanTable();
+            updateReportTable();
+            closeEditScanModal();
+            showNotification(`記錄已成功更新: ${newName} (${newId})`, 'success');
+            saveDataToStorage();
+        });
+
+        function deleteScanItem(timestamp) {
+            const item = scannedIds.find(item => item.timestamp === timestamp);
+            if (!item) {
+                showNotification('找不到要刪除的記錄', 'error');
+                return;
+            }
+            
+            if (confirm(`確定要刪除這筆掃描記錄嗎？\n\n身份證: ${item.id}\n姓名: ${item.name}\n掃描時間: ${item.scanTime}`)) {
+                scannedIds = scannedIds.filter(item => item.timestamp !== timestamp);
+                updateScanTable();
+                updateReportTable();
+                showNotification('記錄已刪除', 'success');
+                saveDataToStorage();
+                updateStatusOverview();
+            }
+        }
+
+        // 清除掃描數據
+        function clearScanData() {
+            if (scannedIds.length === 0) {
+                showNotification('沒有數據需要清除', 'error');
+                return;
+            }
+
+            if (confirm('確定要清除所有掃描數據嗎？此操作無法撤銷！')) {
+                scannedIds = [];
+                sequenceNumber = 1;
+                updateScanTable();
+                updateReportTable();
+                showNotification('所有掃描數據已清除', 'success');
+                saveDataToStorage();
+                updateStatusOverview();
+            }
+        }
+
+        // 更新報表表格
+        function updateReportTable() {
+            const tbody = document.getElementById('reportTableBody');
+            const reportCount = document.getElementById('reportCount');
+            
+            reportCount.textContent = scannedIds.length;
+            
+            if (scannedIds.length === 0 || !courseData) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <h3>尚無報表數據</h3>
+                            <p>請先完成課程設定、姓名匯入和身份證掃描</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = scannedIds.map(item => `
+                <tr>
+                    <td><code>${item.id}</code></td>
+                    <td>${courseData.courseName || ''}</td>
+                    <td>${courseData.startDate || ''}</td>
+                    <td>${courseData.startTime || ''}</td>
+                    <td>${courseData.endDate || ''}</td>
+                    <td>${courseData.endTime || ''}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${courseData.credits || ''}</td>
+                    <td>${courseData.courseCode || ''}</td>
+                    <td>${courseData.city || ''}</td>
+                    <td>${item.scanTime}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ===== 暫存檔功能 =====
+        
+        // 儲存暫存檔
+        function saveTempFile() {
+            try {
+                // 準備要儲存的數據
+                const tempData = {
+                    version: '1.0',
+                    saveTime: new Date().toISOString(),
+                    saveTimeLocal: new Date().toLocaleString('zh-TW'),
+                    courseName: courseData ? courseData.courseName : '未命名課程',
+                    data: {
+                        courseData: courseData,
+                        nameMapping: Array.from(nameMapping.entries()),
+                        scannedIds: scannedIds,
+                        sequenceNumber: sequenceNumber
+                    },
+                    stats: {
+                        courseSet: !!courseData,
+                        nameCount: nameMapping.size,
+                        scanCount: scannedIds.length
+                    }
+                };
+
+                // 轉換為JSON字串
+                const jsonContent = JSON.stringify(tempData, null, 2);
+
+                // 生成檔案名
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+                const courseName = courseData ? courseData.courseName.replace(/[^\w\u4e00-\u9fa5]/g, '_') : '未命名課程';
+                const filename = `${courseName}_暫存檔_${dateStr}_${timeStr}.json`;
+
+                // 下載暫存檔
+                const success = downloadFile(jsonContent, filename, 'application/json');
+                
+                if (success) {
+                    showNotification(`暫存檔已儲存: ${filename}`, 'success');
+                    updateTempFileInfo(tempData);
+                } else {
+                    showNotification('暫存檔儲存失敗，請檢查瀏覽器設定', 'error');
+                }
+
+            } catch (error) {
+                console.error('儲存暫存檔時發生錯誤:', error);
+                showNotification('儲存暫存檔時發生錯誤: ' + error.message, 'error');
+            }
+        }
+
+        // 觸發暫存檔上傳
+        function triggerTempFileUpload() {
+            document.getElementById('tempFileInput').click();
+        }
+
+        // 載入暫存檔
+        function loadTempFile() {
+            const fileInput = document.getElementById('tempFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('請選擇暫存檔', 'error');
+                return;
+            }
+
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                showNotification('請選擇 JSON 格式的暫存檔', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const tempData = JSON.parse(e.target.result);
+                    
+                    // 驗證暫存檔格式
+                    if (!tempData.version || !tempData.data) {
+                        showNotification('暫存檔格式不正確', 'error');
+                        return;
+                    }
+
+                    // 確認載入操作
+                    const confirmMessage = `確定要載入暫存檔嗎？\n\n檔案資訊:\n` +
+                        `- 課程名稱: ${tempData.courseName}\n` +
+                        `- 儲存時間: ${tempData.saveTimeLocal}\n` +
+                        `- 姓名資料: ${tempData.stats.nameCount} 筆\n` +
+                        `- 掃描記錄: ${tempData.stats.scanCount} 筆\n\n` +
+                        `⚠️ 這將會覆蓋目前所有資料！`;
+
+                    if (!confirm(confirmMessage)) {
+                        fileInput.value = '';
+                        return;
+                    }
+
+                    // 載入數據
+                    courseData = tempData.data.courseData;
+                    nameMapping = new Map(tempData.data.nameMapping || []);
+                    scannedIds = tempData.data.scannedIds || [];
+                    sequenceNumber = tempData.data.sequenceNumber || 1;
+
+                    // 更新所有顯示
+                    updateAllDisplays();
+                    updateStatusOverview();
+                    updateTempFileInfo(tempData);
+
+                    showNotification(`暫存檔載入成功: ${tempData.courseName}`, 'success');
+                    
+                    // 自動切換到第一個分頁
+                    switchTab('setup');
+
+                } catch (error) {
+                    console.error('載入暫存檔時發生錯誤:', error);
+                    showNotification('暫存檔格式錯誤或已損壞', 'error');
+                }
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+            
+            // 清空檔案輸入
+            fileInput.value = '';
+        }
+
+        // 更新暫存檔資訊顯示
+        function updateTempFileInfo(tempData) {
+            const infoDiv = document.getElementById('tempFileInfo');
+            const detailsDiv = document.getElementById('tempFileDetails');
+            
+            if (tempData) {
+                infoDiv.style.display = 'block';
+                detailsDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div><strong>課程名稱:</strong> ${tempData.courseName}</div>
+                        <div><strong>儲存時間:</strong> ${tempData.saveTimeLocal}</div>
+                        <div><strong>版本:</strong> ${tempData.version}</div>
+                        <div><strong>姓名資料:</strong> ${tempData.stats.nameCount} 筆</div>
+                        <div><strong>掃描記錄:</strong> ${tempData.stats.scanCount} 筆</div>
+                        <div><strong>課程設定:</strong> ${tempData.stats.courseSet ? '已設定' : '未設定'}</div>
+                    </div>
+                `;
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        }
+
+        // 更新狀態概覽
+        function updateStatusOverview() {
+            const statusCourse = document.getElementById('statusCourse');
+            const statusNames = document.getElementById('statusNames');
+            const statusScans = document.getElementById('statusScans');
+            const statusProgress = document.getElementById('statusProgress');
+            const progressBar = document.getElementById('progressBar');
+
+            // 更新各項狀態
+            statusCourse.textContent = courseData ? '已設定' : '未設定';
+            statusNames.textContent = `${nameMapping.size} 人`;
+            statusScans.textContent = `${scannedIds.length} 筆`;
+
+            // 計算完成度 (課程設定25% + 姓名匯入25% + 掃描記錄50%)
+            let progress = 0;
+            if (courseData) progress += 25;
+            if (nameMapping.size > 0) progress += 25;
+            if (scannedIds.length > 0) progress += 50;
+
+            statusProgress.textContent = `${progress}%`;
+            progressBar.style.width = `${progress}%`;
+
+            // 根據進度改變進度條顏色
+            if (progress >= 75) {
+                progressBar.style.background = 'linear-gradient(45deg, #28a745, #20c997)';
+            } else if (progress >= 50) {
+                progressBar.style.background = 'linear-gradient(45deg, #ffc107, #fd7e14)';
+            } else {
+                progressBar.style.background = 'linear-gradient(45deg, #dc3545, #e83e8c)';
+            }
+        }
+
+        // 清除所有資料
+        function clearAllData() {
+            const hasData = courseData || nameMapping.size > 0 || scannedIds.length > 0;
+            
+            if (!hasData) {
+                showNotification('目前沒有資料需要清除', 'info');
+                return;
+            }
+
+            const confirmMessage = `⚠️ 確定要清除所有資料嗎？\n\n` +
+                `這將會清除：\n` +
+                `- 課程設定資料\n` +
+                `- 所有姓名對應表 (${nameMapping.size} 筆)\n` +
+                `- 所有掃描記錄 (${scannedIds.length} 筆)\n\n` +
+                `建議在清除前先儲存暫存檔！\n\n` +
+                `此操作無法撤銷，確定要繼續嗎？`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // 清除所有資料
+            courseData = null;
+            nameMapping.clear();
+            scannedIds = [];
+            sequenceNumber = 1;
+
+            // 更新所有顯示
+            updateAllDisplays();
+            updateStatusOverview();
+            
+            // 隱藏暫存檔資訊
+            document.getElementById('tempFileInfo').style.display = 'none';
+
+            showNotification('所有資料已清除', 'success');
+            
+            // 切換到課程設定頁面
+            switchTab('setup');
+        }
+
+        // 強化的檔案下載功能
+        function downloadFile(content, filename, mimeType = 'application/octet-stream') {
+            try {
+                // 顯示下載狀態
+                showDownloadStatus(`正在準備下載檔案: ${filename}`);
+                
+                // 建立 Blob 物件
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                
+                // 建立下載連結
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                
+                // 確保連結被加到 DOM 中
+                document.body.appendChild(link);
+                
+                // 模擬點擊下載
+                link.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showDownloadStatus(`✅ 檔案下載完成: ${filename}`, 'success');
+                    
+                    setTimeout(() => {
+                        hideDownloadStatus();
+                    }, 3000);
+                }, 100);
+                
+                return true;
+            } catch (error) {
+                console.error('下載檔案時發生錯誤:', error);
+                showDownloadStatus(`❌ 下載失敗: ${error.message}`, 'error');
+                
+                setTimeout(() => {
+                    hideDownloadStatus();
+                }, 5000);
+                
+                return false;
+            }
+        }
+
+        // 顯示下載狀態
+        function showDownloadStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('downloadStatus');
+            const messageDiv = document.getElementById('downloadMessage');
+            
+            messageDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            
+            // 根據類型改變樣式
+            statusDiv.className = 'download-status';
+            if (type === 'success') {
+                statusDiv.style.borderColor = '#4caf50';
+                statusDiv.style.backgroundColor = '#e8f5e8';
+                statusDiv.style.color = '#2e7d32';
+            } else if (type === 'error') {
+                statusDiv.style.borderColor = '#f44336';
+                statusDiv.style.backgroundColor = '#ffebee';
+                statusDiv.style.color = '#c62828';
+            } else {
+                statusDiv.style.borderColor = '#2196f3';
+                statusDiv.style.backgroundColor = '#e3f2fd';
+                statusDiv.style.color = '#1976d2';
+            }
+        }
+
+        // 隱藏下載狀態
+        function hideDownloadStatus() {
+            document.getElementById('downloadStatus').style.display = 'none';
+        }
+
+        function convertToROCDate(dateString) {
+            if (!dateString) return '';
+            
+            try {
+                // 處理 YYYY-MM-DD 格式
+                if (dateString.includes('-')) {
+                    const parts = dateString.split('-');
+                    const year = parseInt(parts[0]);
+                    const rocYear = year - 1911;
+                    
+                    // 如果是民國前，回傳原日期
+                    if (rocYear <= 0) return dateString;
+                    
+                    return `${rocYear}-${parts[1]}-${parts[2]}`;
+                }
+                
+                // 處理 YYYY/MM/DD 格式
+                if (dateString.includes('/')) {
+                    const parts = dateString.split('/');
+                    const year = parseInt(parts[0]);
+                    const rocYear = year - 1911;
+                    
+                    if (rocYear <= 0) return dateString;
+                    
+                    return `${rocYear}/${parts[1]}/${parts[2]}`;
+                }
+                
+                return dateString;
+            } catch (error) {
+                console.error('日期轉換錯誤:', error);
+                return dateString;
+            }
+        }
+
+        // 匯出完整報表 (Excel)
+        function exportFullReport() {
+            if (scannedIds.length === 0) {
+                showNotification('沒有掃描數據可以匯出', 'error');
+                return;
+            }
+            
+            if (!courseData) {
+                showNotification('請先設定課程資料', 'error');
+                return;
+            }
+
+            try {
+                const includeScanTime = document.getElementById('includeScanTime').checked;
+
+                // 準備匯出數據
+                const exportData = scannedIds.map(item => {
+                    const baseData = {
+                        '身份證字號': item.id,
+                        '課程名稱': courseData.courseName || '',
+                        '開課起始日期': convertToROCDate(courseData.startDate) || '',
+                        '開課起始時間': courseData.startTime || '',
+                        '開課結束日期': convertToROCDate(courseData.endDate) || '',
+                        '開課結束時間': courseData.endTime || '',
+                        '姓名': item.name,
+                        '學位學分': courseData.credits || '',
+                        '課程類別代碼': courseData.courseCode || '',
+                        '上課縣市': courseData.city || '',
+                        '期別': courseData.period || '',
+                        '訓練總數': courseData.trainingTotal || '',
+                        '訓練總數單位': courseData.trainingUnit || '',
+                        '訓練成績': '',
+                        '證件字號': '',
+                        '出勤上課狀況': '',
+                        '生日': '',
+                        '學習性質': courseData.learningType || '',
+                        '數位時數': courseData.digitalHours || '',
+                        '實體時數': courseData.physicalHours || '',
+                        '課程代碼': '',
+                        '實際上課起始日期': convertToROCDate(courseData.startDate) || '',
+                        '實際上課起始時間': courseData.startTime || '',
+                        '實際上課結束日期': convertToROCDate(courseData.endDate) || '',
+                        '實際上課結束時間': courseData.endTime || ''
+                    };
+                    
+                    // 根據選項決定是否包含掃描時間
+                    if (includeScanTime) {
+                        baseData['掃描時間'] = item.scanTime;
+                    }
+                    
+                    return baseData;
+                });
+
+                // 創建工作簿
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "課程出席報表");
+
+                // 設置列寬
+                const columnCount = includeScanTime ? 26 : 25;
+                ws['!cols'] = Array(columnCount).fill({ width: 15 });
+
+                // 生成檔案名
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+                const courseName = courseData.courseName || '課程';
+                const filename = `${courseName}_出席報表_${dateStr}_${timeStr}.xlsx`;
+
+                // 使用強化的下載功能
+                showDownloadStatus('正在生成Excel檔案...');
+                
+                // 轉換為二進制數據
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                
+                // 下載檔案
+                const success = downloadFile(
+                    wbout, 
+                    filename, 
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                );
+                
+                if (success) {
+                    showNotification(`Excel報表已匯出: ${filename}`, 'success');
+                } else {
+                    showNotification('Excel匯出失敗，請檢查瀏覽器設定', 'error');
+                }
+                
+            } catch (error) {
+                console.error('匯出Excel時發生錯誤:', error);
+                showNotification('匯出Excel時發生錯誤: ' + error.message, 'error');
+                showDownloadStatus(`❌ Excel匯出失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 匯出為CSV
+        function exportAsCSV() {
+            if (scannedIds.length === 0) {
+                showNotification('沒有掃描數據可以匯出', 'error');
+                return;
+            }
+            
+            if (!courseData) {
+                showNotification('請先設定課程資料', 'error');
+                return;
+            }
+
+            try {
+                const includeScanTime = document.getElementById('includeScanTime').checked;
+
+                // 準備CSV標題
+                let headers = [
+                    '身份證字號', '課程名稱', '開課起始日期', '開課起始時間', 
+                    '開課結束日期', '開課結束時間', '姓名', '學位學分', 
+                    '課程類別代碼', '上課縣市', '期別', '訓練總數', 
+                    '訓練總數單位', '訓練成績', '證件字號', '出勤上課狀況', 
+                    '生日', '學習性質', '數位時數', '實體時數', 
+                    '課程代碼', '實際上課起始日期', '實際上課起始時間', 
+                    '實際上課結束日期', '實際上課結束時間'
+                ];
+                
+                if (includeScanTime) {
+                    headers.push('掃描時間');
+                }
+
+                // 準備CSV數據
+                const csvData = scannedIds.map(item => {
+                    let row = [
+                        item.id,
+                        courseData.courseName || '',
+                        convertToROCDate(courseData.startDate) || '',
+                        courseData.startTime || '',
+                        convertToROCDate(courseData.endDate) || '',
+                        courseData.endTime || '',
+                        item.name,
+                        courseData.credits || '',
+                        courseData.courseCode || '',
+                        courseData.city || '',
+                        courseData.period || '',
+                        courseData.trainingTotal || '',
+                        courseData.trainingUnit || '',
+                        '', // 訓練成績
+                        '', // 證件字號
+                        '', // 出勤上課狀況
+                        '', // 生日
+                        courseData.learningType || '',
+                        courseData.digitalHours || '',
+                        courseData.physicalHours || '',
+                        '', // 課程代碼
+                        convertToROCDate(courseData.startDate) || '',
+                        courseData.startTime || '',
+                        convertToROCDate(courseData.endDate) || '',
+                        courseData.endTime || ''
+                    ];
+                    
+                    if (includeScanTime) {
+                        row.push(item.scanTime);
+                    }
+                    
+                    return row;
+                });
+
+                // 組合CSV內容
+                const csvContent = [headers, ...csvData]
+                    .map(row => row.map(field => `"${field}"`).join(','))
+                    .join('\n');
+
+                // 加上BOM標記讓Excel正確顯示中文
+                const csvWithBOM = '\uFEFF' + csvContent;
+
+                // 生成檔案名
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+                const courseName = courseData.courseName || '課程';
+                const filename = `${courseName}_出席報表_${dateStr}_${timeStr}.csv`;
+
+                // 下載CSV檔案
+                const success = downloadFile(csvWithBOM, filename, 'text/csv;charset=utf-8');
+                
+                if (success) {
+                    showNotification(`CSV報表已匯出: ${filename}`, 'success');
+                } else {
+                    showNotification('CSV匯出失敗，請檢查瀏覽器設定', 'error');
+                }
+                
+            } catch (error) {
+                console.error('匯出CSV時發生錯誤:', error);
+                showNotification('匯出CSV時發生錯誤: ' + error.message, 'error');
+                showDownloadStatus(`❌ CSV匯出失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新所有顯示
+        function updateAllDisplays() {
+            updateCourseDisplay();
+            updateNameTable();
+            updateScanTable();
+            updateReportTable();
+        }
+
+        // 數據持久化 - 改用記憶體變數而非localStorage
+        let dataStorage = {};
+
+        function saveDataToStorage() {
+            const data = {
+                courseData: courseData,
+                nameMapping: Array.from(nameMapping.entries()),
+                scannedIds: scannedIds,
+                sequenceNumber: sequenceNumber
+            };
+            try {
+                dataStorage = data;
+                console.log('資料已儲存到記憶體');
+            } catch (error) {
+                console.error('儲存資料時發生錯誤:', error);
+                showNotification('儲存資料時發生錯誤', 'error');
+            }
+        }
+
+        function loadSavedData() {
+            try {
+                if (dataStorage && Object.keys(dataStorage).length > 0) {
+                    const data = dataStorage;
+                    courseData = data.courseData || null;
+                    nameMapping = new Map(data.nameMapping || []);
+                    scannedIds = data.scannedIds || [];
+                    sequenceNumber = data.sequenceNumber || 1;
+                    updateAllDisplays();
+                    console.log('已載入儲存的資料');
+                }
+            } catch (error) {
+                console.error('載入儲存資料時發生錯誤:', error);
+                showNotification('載入儲存資料時發生錯誤', 'error');
+            }
+        }
+
+        // 通知功能
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // 網頁關閉確認
+        window.addEventListener('beforeunload', function(e) {
+            if (scannedIds.length > 0 || nameMapping.size > 0 || courseData) {
+                const confirmationMessage = '請確認資料是否已匯出，確認關閉？\n\n目前有未匯出的數據。';
+                e.preventDefault();
+                e.returnValue = confirmationMessage;
+                return confirmationMessage;
+            }
+        });
+
+        // 快捷鍵支援
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+S 匯出Excel報表
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                exportFullReport();
+            }
+            
+            // Ctrl+Shift+S 儲存暫存檔
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                e.preventDefault();
+                saveTempFile();
+            }
+            
+            // Ctrl+Shift+C 清除掃描數據
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                e.preventDefault();
+                clearScanData();
+            }
+            
+            // Ctrl+Shift+L 載入暫存檔
+            if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+                e.preventDefault();
+                triggerTempFileUpload();
+            }
+            
+            // ESC 關閉彈出視窗
+            if (e.key === 'Escape') {
+                closeEditScanModal();
+                closeCourseModal();
+            }
+        });
+
+        // 保持掃描器輸入框焦點
+        setInterval(() => {
+            const input = document.getElementById('idCardInput');
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab && activeTab.id === 'scan' && 
+                document.activeElement !== input && 
+                !document.querySelector('.modal.show')) {
+                input.focus();
+                input.style.imeMode = 'disabled';
+            }
+        }, 1000);
+
+        // 點擊彈出視窗外部關閉
+        document.addEventListener('click', function(e) {
+            const editModal = document.getElementById('editScanModal');
+            const courseModal = document.getElementById('courseModal');
+            
+            if (e.target === editModal) {
+                closeEditScanModal();
+            }
+            
+            if (e.target === courseModal) {
+                closeCourseModal();
+            }
+        });
+
+        // 自動儲存功能（每30秒自動儲存一次）
+        setInterval(() => {
+            if (scannedIds.length > 0 || nameMapping.size > 0 || courseData) {
+                saveDataToStorage();
+            }
+        }, 30000);
+
+        // 頁面載入時顯示使用說明
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (!courseData && scannedIds.length === 0 && nameMapping.size === 0) {
+                    showNotification('歡迎使用簽到報表匯出系統！請先設定課程資料', 'info');
+                }
+            }, 1000);
+        });
+
+        // 檢測瀏覽器下載功能支援
+        function checkDownloadSupport() {
+            const link = document.createElement('a');
+            const isDownloadSupported = typeof link.download !== 'undefined';
+            
+            if (!isDownloadSupported) {
+                showNotification('您的瀏覽器可能不支援檔案下載功能，建議使用Chrome、Firefox或Edge', 'error');
+            }
+            
+            return isDownloadSupported;
+        }
+
+        // 頁面載入時檢查下載支援
+        document.addEventListener('DOMContentLoaded', function() {
+            checkDownloadSupport();
+        });
+    </script>
+</body>
+</html>
