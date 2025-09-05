@@ -683,11 +683,14 @@
             </div>
 
             <div style="margin-bottom: 20px;">
-                <button class="btn btn-success" onclick="exportFullReport()">
+                <!-- <button class="btn btn-success" onclick="exportFullReport()">
                     📥 匯出完整報表
+                </button> -->
+                <button class="btn btn-info" onclick="exportAsCSV1()">
+                    📄 匯出為未開課CSV
                 </button>
-                <button class="btn btn-info" onclick="exportAsCSV()">
-                    📄 匯出為CSV
+                <button class="btn btn-info" onclick="exportAsCSV2()">
+                    📄 匯出為已開課CSV
                 </button>
                 <label style="margin-left: 20px; display: inline-flex; align-items: center; gap: 8px;">
                     <input type="checkbox" id="includeScanTime" checked>
@@ -1843,102 +1846,102 @@
         }
 
         // 匯出完整報表 (Excel)
-        function exportFullReport() {
-            if (scannedIds.length === 0) {
-                showNotification('沒有掃描數據可以匯出', 'error');
-                return;
-            }
+        // function exportFullReport() {
+        //     if (scannedIds.length === 0) {
+        //         showNotification('沒有掃描數據可以匯出', 'error');
+        //         return;
+        //     }
             
-            if (!courseData) {
-                showNotification('請先設定課程資料', 'error');
-                return;
-            }
+        //     if (!courseData) {
+        //         showNotification('請先設定課程資料', 'error');
+        //         return;
+        //     }
 
-            try {
-                const includeScanTime = document.getElementById('includeScanTime').checked;
+        //     try {
+        //         const includeScanTime = document.getElementById('includeScanTime').checked;
 
-                // 準備匯出數據
-                const exportData = scannedIds.map(item => {
-                    const baseData = {
-                        '身份證字號': item.id,
-                        '課程名稱': courseData.courseName || '',
-                        '開課起始日期': convertToROCDate(courseData.startDate) || '',
-                        '開課起始時間': courseData.startTime || '',
-                        '開課結束日期': convertToROCDate(courseData.endDate) || '',
-                        '開課結束時間': courseData.endTime || '',
-                        '姓名': item.name,
-                        '學位學分': courseData.credits || '',
-                        '課程類別代碼': courseData.courseCode || '',
-                        '上課縣市': courseData.city || '',
-                        '期別': courseData.period || '',
-                        '訓練總數': courseData.trainingTotal || '',
-                        '訓練總數單位': courseData.trainingUnit || '',
-                        '訓練成績': '',
-                        '證件字號': '',
-                        '出勤上課狀況': '',
-                        '生日': '',
-                        '學習性質': courseData.learningType || '',
-                        '數位時數': courseData.digitalHours || '',
-                        '實體時數': courseData.physicalHours || '',
-                        '課程代碼': '',
-                        '實際上課起始日期': convertToROCDate(courseData.startDate) || '',
-                        '實際上課起始時間': courseData.startTime || '',
-                        '實際上課結束日期': convertToROCDate(courseData.endDate) || '',
-                        '實際上課結束時間': courseData.endTime || ''
-                    };
+        //         // 準備匯出數據
+        //         const exportData = scannedIds.map(item => {
+        //             const baseData = {
+        //                 '身份證字號': item.id,
+        //                 '課程名稱': courseData.courseName || '',
+        //                 '開課起始日期': convertToROCDate(courseData.startDate) || '',
+        //                 '開課起始時間': courseData.startTime+':00' || '',
+        //                 '開課結束日期': convertToROCDate(courseData.endDate) || '',
+        //                 '開課結束時間': courseData.endTime+':00' || '',
+        //                 '姓名': item.name,
+        //                 '學位學分': courseData.credits || '',
+        //                 '課程類別代碼': courseData.courseCode || '',
+        //                 '上課縣市': courseData.city || '',
+        //                 '期別': courseData.period || '',
+        //                 '訓練總數': courseData.trainingTotal || '',
+        //                 '訓練總數單位': courseData.trainingUnit || '',
+        //                 '訓練成績': '',
+        //                 '證件字號': '',
+        //                 '出勤上課狀況': '',
+        //                 '生日': '',
+        //                 '學習性質': courseData.learningType || '',
+        //                 '數位時數': courseData.digitalHours || '',
+        //                 '實體時數': courseData.physicalHours || '',
+        //                 '課程代碼': '',
+        //                 '實際上課起始日期': convertToROCDate(courseData.startDate) || '',
+        //                 '實際上課起始時間': courseData.startTime+':00' || '',
+        //                 '實際上課結束日期': convertToROCDate(courseData.endDate) || '',
+        //                 '實際上課結束時間': courseData.endTime+':00' || ''
+        //             };
                     
-                    // 根據選項決定是否包含掃描時間
-                    if (includeScanTime) {
-                        baseData['掃描時間'] = item.scanTime;
-                    }
+        //             // 根據選項決定是否包含掃描時間
+        //             if (includeScanTime) {
+        //                 baseData['掃描時間'] = item.scanTime;
+        //             }
                     
-                    return baseData;
-                });
+        //             return baseData;
+        //         });
 
-                // 創建工作簿
-                const ws = XLSX.utils.json_to_sheet(exportData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "課程出席報表");
+        //         // 創建工作簿
+        //         const ws = XLSX.utils.json_to_sheet(exportData);
+        //         const wb = XLSX.utils.book_new();
+        //         XLSX.utils.book_append_sheet(wb, ws, "課程出席報表");
 
-                // 設置列寬
-                const columnCount = includeScanTime ? 26 : 25;
-                ws['!cols'] = Array(columnCount).fill({ width: 15 });
+        //         // 設置列寬
+        //         const columnCount = includeScanTime ? 26 : 25;
+        //         ws['!cols'] = Array(columnCount).fill({ width: 15 });
 
-                // 生成檔案名
-                const now = new Date();
-                const dateStr = now.toISOString().slice(0, 10);
-                const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
-                const courseName = courseData.courseName || '課程';
-                const filename = `${courseName}_出席報表_${dateStr}_${timeStr}.xlsx`;
+        //         // 生成檔案名
+        //         const now = new Date();
+        //         const dateStr = now.toISOString().slice(0, 10);
+        //         const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+        //         const courseName = courseData.courseName || '課程';
+        //         const filename = `${courseName}_出席報表_${dateStr}_${timeStr}.xlsx`;
 
-                // 使用強化的下載功能
-                showDownloadStatus('正在生成Excel檔案...');
+        //         // 使用強化的下載功能
+        //         showDownloadStatus('正在生成Excel檔案...');
                 
-                // 轉換為二進制數據
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        //         // 轉換為二進制數據
+        //         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                 
-                // 下載檔案
-                const success = downloadFile(
-                    wbout, 
-                    filename, 
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                );
+        //         // 下載檔案
+        //         const success = downloadFile(
+        //             wbout, 
+        //             filename, 
+        //             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        //         );
                 
-                if (success) {
-                    showNotification(`Excel報表已匯出: ${filename}`, 'success');
-                } else {
-                    showNotification('Excel匯出失敗，請檢查瀏覽器設定', 'error');
-                }
+        //         if (success) {
+        //             showNotification(`Excel報表已匯出: ${filename}`, 'success');
+        //         } else {
+        //             showNotification('Excel匯出失敗，請檢查瀏覽器設定', 'error');
+        //         }
                 
-            } catch (error) {
-                console.error('匯出Excel時發生錯誤:', error);
-                showNotification('匯出Excel時發生錯誤: ' + error.message, 'error');
-                showDownloadStatus(`❌ Excel匯出失敗: ${error.message}`, 'error');
-            }
-        }
+        //     } catch (error) {
+        //         console.error('匯出Excel時發生錯誤:', error);
+        //         showNotification('匯出Excel時發生錯誤: ' + error.message, 'error');
+        //         showDownloadStatus(`❌ Excel匯出失敗: ${error.message}`, 'error');
+        //     }
+        // }
 
-        // 匯出為CSV
-        function exportAsCSV() {
+        // 匯出為未開班CSV
+        function exportAsCSV1() {
             if (scannedIds.length === 0) {
                 showNotification('沒有掃描數據可以匯出', 'error');
                 return;
@@ -1973,9 +1976,9 @@
                         item.id,
                         courseData.courseName || '',
                         convertToROCDate(courseData.startDate) || '',
-                        courseData.startTime || '',
+                        courseData.startTime+':00' || '',
                         convertToROCDate(courseData.endDate) || '',
-                        courseData.endTime || '',
+                        courseData.endTime+':00' || '',
                         item.name,
                         courseData.credits || '',
                         courseData.courseCode || '',
@@ -1992,9 +1995,9 @@
                         courseData.physicalHours || '',
                         '', // 課程代碼
                         convertToROCDate(courseData.startDate) || '',
-                        courseData.startTime || '',
+                        courseData.startTime+':00' || '',
                         convertToROCDate(courseData.endDate) || '',
-                        courseData.endTime || ''
+                        courseData.endTime+':00' || ''
                     ];
                     
                     if (includeScanTime) {
@@ -2017,7 +2020,94 @@
                 const dateStr = now.toISOString().slice(0, 10);
                 const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
                 const courseName = courseData.courseName || '課程';
-                const filename = `${courseName}_出席報表_${dateStr}_${timeStr}.csv`;
+                const filename = `${courseName}_未開課出席報表_${dateStr}_${timeStr}.csv`;
+
+                // 下載CSV檔案
+                const success = downloadFile(csvWithBOM, filename, 'text/csv;charset=utf-8');
+                
+                if (success) {
+                    showNotification(`CSV報表已匯出: ${filename}`, 'success');
+                } else {
+                    showNotification('CSV匯出失敗，請檢查瀏覽器設定', 'error');
+                }
+                
+            } catch (error) {
+                console.error('匯出CSV時發生錯誤:', error);
+                showNotification('匯出CSV時發生錯誤: ' + error.message, 'error');
+                showDownloadStatus(`❌ CSV匯出失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 匯出為已開班CSV
+        function exportAsCSV2() {
+            if (scannedIds.length === 0) {
+                showNotification('沒有掃描數據可以匯出', 'error');
+                return;
+            }
+            
+            if (!courseData) {
+                showNotification('請先設定課程資料', 'error');
+                return;
+            }
+
+            try {
+                const includeScanTime = document.getElementById('includeScanTime').checked;
+
+                // 準備CSV標題
+                let headers = [
+                    '課程代碼','期別', '身份證字號', '姓名', '通過' , '訓練成績', '訓練總數',
+                    '證件字號','出勤上課狀況','生日','學習性質', '數位時數', '實體時數',
+                    '實際上課起始日期', '實際上課起始時間', '實際上課結束日期', '實際上課結束時間'
+                ];
+                
+                if (includeScanTime) {
+                    headers.push('掃描時間');
+                }
+
+                // 準備CSV數據
+                const csvData = scannedIds.map(item => {
+                    let row = [
+                        courseData.courseCode || '', // 課程代碼
+                        courseData.period || '',     // 期別
+                        item.id,                     // 身份證字號
+                        item.name,                   // 姓名
+                        '',                          // 通過
+                        '',                          // 訓練成績
+                        courseData.trainingTotal || '', // 訓練總數
+                        '',                          // 證件字號
+                        '',                          // 出勤上課狀況
+                        '',                          // 生日
+                        courseData.learningType || '', // 學習性質
+                        courseData.digitalHours || '', // 數位時數
+                        courseData.physicalHours || '', // 實體時數
+                        convertToROCDate(courseData.startDate) || '', // 實際上課起始日期
+                        courseData.startTime+':00' || '', // 實際上課起始時間
+                        convertToROCDate(courseData.endDate) || '',   // 實際上課結束日期
+                        courseData.endTime+':00' || ''  // 實際上課結束時間
+                    ];
+                      
+                    
+                    if (includeScanTime) {
+                        row.push(item.scanTime);
+                    }
+                    
+                    return row;
+                });
+
+                // 組合CSV內容
+                const csvContent = [headers, ...csvData]
+                    .map(row => row.map(field => `"${field}"`).join(','))
+                    .join('\n');
+
+                // 加上BOM標記讓Excel正確顯示中文
+                const csvWithBOM = '\uFEFF' + csvContent;
+
+                // 生成檔案名
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+                const courseName = courseData.courseName || '課程';
+                const filename = `${courseName}_已開課出席報表_${dateStr}_${timeStr}.csv`;
 
                 // 下載CSV檔案
                 const success = downloadFile(csvWithBOM, filename, 'text/csv;charset=utf-8');
